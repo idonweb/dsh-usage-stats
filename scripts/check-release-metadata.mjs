@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { EXPECTED_CATALOG_ENDPOINT, EXPECTED_PACKAGE_NAME, EXPECTED_REPOSITORY, SEMVER } from "./release-metadata.mjs";
+import { EXPECTED_CATALOG_ENDPOINT, EXPECTED_INSTALL_SPEC, EXPECTED_PACKAGE_NAME, EXPECTED_REPOSITORY, SEMVER } from "./release-metadata.mjs";
 
 async function json(path) {
 	return JSON.parse(await readFile(path, "utf8"));
@@ -49,6 +49,7 @@ assert.doesNotMatch(patch, new RegExp(`^\\s*name:\\s*${escapedName}\\s*$`, "m"),
 assert.match(client, new RegExp(`__ModuleLoader__\\.load\\(\\{\\s*id:\\s*"${escapedName}"`, "s"), "browser loader identity must match package name");
 assert.match(client, new RegExp(`tag\\.dataset\\.plugin\\s*=\\s*"${escapedName}"`), "client style ownership identity must match package name");
 assert.match(readme, new RegExp(`<!--\\s*stable-version:\\s*${pkg.version.replaceAll(".", "\\.")}\\s*-->`), "README stable-version marker must match package version");
-assert.match(readme, new RegExp(`${escapedName}@${pkg.version.replaceAll(".", "\\.")}`), "README must include an exact npm install for the package version");
+assert.ok(readme.includes(`dsh plugin --profile web add "${EXPECTED_INSTALL_SPEC}"`), "README must document the fork git install command");
+assert.ok(readme.includes(`${EXPECTED_INSTALL_SPEC}#v${pkg.version}`), "README must pin the git install command to the release tag");
 
 console.log(`release metadata ok: ${pkg.name}@${pkg.version}`);

@@ -1,5 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
-import { SEMVER } from "./release-metadata.mjs";
+import { EXPECTED_INSTALL_SPEC, SEMVER } from "./release-metadata.mjs";
 const version = process.argv[2];
 
 if (typeof version !== "string" || !SEMVER.test(version)) {
@@ -26,9 +26,9 @@ if (typeof version !== "string" || !SEMVER.test(version)) {
 	catalog.items[0].updatedAt = timestamp;
 	const nextReadme = readme
 		.replace(marker, `<!-- stable-version: ${version} -->`)
-		.replaceAll(`${pkg.name}@${previousVersion}`, `${pkg.name}@${version}`)
-		.replaceAll(`stable/catalog 版本是 \`${previousVersion}\``, `stable/catalog 版本是 \`${version}\``)
-		.replaceAll(`当前 npm stable 为 \`${previousVersion}\``, `当前 npm stable 为 \`${version}\``);
+		.replaceAll(`${EXPECTED_INSTALL_SPEC}#v${previousVersion}`, `${EXPECTED_INSTALL_SPEC}#v${version}`)
+		.replaceAll(`release 标签是 \`v${previousVersion}\``, `release 标签是 \`v${version}\``)
+		.replaceAll(`当前 fork 发布标签为 \`v${previousVersion}\``, `当前 fork 发布标签为 \`v${version}\``);
 	await Promise.all([
 		writeFile("package.json", `${JSON.stringify(pkg, null, 2)}\n`, "utf8"),
 		writeFile("package-lock.json", `${JSON.stringify(lock, null, 2)}\n`, "utf8"),
