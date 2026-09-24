@@ -1,13 +1,13 @@
 {
   "name": "@ychris12138/dsh-usage-stats",
   "description": "Token usage, provider accounts, session cost estimates, budgets, and exports for the dsh web GUI",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Ychris12138/dsh-usage-stats.git"
+    "url": "git+https://github.com/idonweb/dsh-usage-stats.git"
   },
-  "homepage": "https://github.com/Ychris12138/dsh-usage-stats#readme",
-  "bugs": "https://github.com/Ychris12138/dsh-usage-stats/issues",
+  "homepage": "https://github.com/idonweb/dsh-usage-stats#readme",
+  "bugs": "https://github.com/idonweb/dsh-usage-stats/issues",
   "keywords": [
     "deepseek",
     "deepseek-harness",
@@ -48,7 +48,6 @@
       "platform": "web",
       "inject": [
         "@deepseek-ai/dsh-client-locale",
-        "@deepseek-ai/dsh-client-runtime",
         "@deepseek-ai/dsh-client-ui-primitives"
       ]
     }
@@ -75,6 +74,7 @@
     "prepublishOnly": "npm run check && npm test"
   },
   "devDependencies": {
+    "@deepseek-ai/dsh-client-ui-primitives": "0.1.7-rc.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-test-renderer": "^18.3.1"

@@ -1,9 +1,9 @@
 # dsh-usage-stats
 
-<!-- stable-version: 0.3.3 -->
+<!-- stable-version: 0.3.4 -->
 
-[![GitHub Release](https://img.shields.io/github/v/release/Ychris12138/dsh-usage-stats?display_name=tag&sort=semver&color=1f6feb)](https://github.com/Ychris12138/dsh-usage-stats/releases/latest)
-[![CI](https://github.com/Ychris12138/dsh-usage-stats/actions/workflows/ci.yml/badge.svg)](https://github.com/Ychris12138/dsh-usage-stats/actions/workflows/ci.yml)
+[![GitHub Release](https://img.shields.io/github/v/release/idonweb/dsh-usage-stats?display_name=tag&sort=semver&color=1f6feb)](https://github.com/idonweb/dsh-usage-stats/releases/latest)
+[![CI](https://github.com/idonweb/dsh-usage-stats/actions/workflows/ci.yml/badge.svg)](https://github.com/idonweb/dsh-usage-stats/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
 
 为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 网页端提供多供应商账户监测与 Token 用量分析。
@@ -39,10 +39,10 @@ Provider balances, subscription quotas, and token-usage analytics for the DeepSe
 稳定版优先安装 npm 上的精确版本；这也是 DSH Desktop Market 使用的同一个包：
 
 ```bash
-dsh plugin --profile web add "@ychris12138/dsh-usage-stats@0.3.3"
+dsh plugin --profile web add "@ychris12138/dsh-usage-stats@0.3.4"
 ```
 
-只有测试尚未发布的 source/RC 时才使用 `dsh plugin --profile web add "github:Ychris12138/dsh-usage-stats"`。GitHub `main` 可能领先 npm stable，不应把 source 安装当作市场安装验收。
+只有测试尚未发布的 source/RC 时才使用 `dsh plugin --profile web add "github:idonweb/dsh-usage-stats"`。GitHub `main` 可能领先 npm stable，不应把 source 安装当作市场安装验收。
 
 然后重启已经运行的 `dsh web`，并在浏览器中硬刷新。侧边栏底部会出现“用量/余额”（Usage/Balance）入口。
 
@@ -53,12 +53,12 @@ dsh plugin --profile web add "@ychris12138/dsh-usage-stats@0.3.3"
 - `catalog/catalog-source.json` — 来源 manifest（`catalog-source.schema.json` v1.0.0）
 - `catalog/v1/plugins.json` — 标准 provider page（`catalog-provider-page.schema.json` v1.0.0）
 
-**使用前提（重要）**：市场托管安装只接受 npm registry 的精确稳定版本，git 条目仅可浏览。`dsh-usage-stats` 这个 npm 名已被其他项目占用，因此目录条目身份使用 `@ychris12138/dsh-usage-stats`。当前 stable/catalog 版本是 `0.3.3`；每个新版本都按以下顺序发布：
+**使用前提（重要）**：市场托管安装只接受 npm registry 的精确稳定版本，git 条目仅可浏览。`dsh-usage-stats` 这个 npm 名已被其他项目占用，因此目录条目身份使用 `@ychris12138/dsh-usage-stats`。当前 stable/catalog 版本是 `0.3.4`；每个新版本都按以下顺序发布：
 
 1. 运行 `npm run release:sync -- <version>` 同步 `package.json` / `package-lock.json` / `catalog/v1/plugins.json`，再由 `npm run check:release` 阻止身份或版本漂移。
 2. 发布 scoped 公共包：`npm publish --access public`。
-3. 把 `catalog/v1/plugins.json` 内容发布到 `https://ychris12138.github.io/dsh-usage-stats/v1/plugins`（GitHub Pages，manifest 与 endpoint 必须同源、HTTPS 443、无凭据）。
-4. 在 DSH 插件市场 → 来源管理 → 添加来源，粘贴 manifest URL：`https://ychris12138.github.io/dsh-usage-stats/catalog-source.json`，选择后即可走「可恢复安装边界」GUI 安装。
+3. 把 `catalog/v1/plugins.json` 内容发布到 `https://idonweb.github.io/dsh-usage-stats/v1/plugins`（GitHub Pages，manifest 与 endpoint 必须同源、HTTPS 443、无凭据）。
+4. 在 DSH 插件市场 → 来源管理 → 添加来源，粘贴 manifest URL：`https://idonweb.github.io/dsh-usage-stats/catalog-source.json`，选择后即可走「可恢复安装边界」GUI 安装。
 
 > 目录若先指向尚未发布的版本，市场安装会 fail-closed，这是预期行为。只有 npm、Pages catalog 与 Desktop Market 实际安装全部验证后，才算完成发布。
 
@@ -75,7 +75,7 @@ dsh plugin --profile web remove "@ychris12138/dsh-usage-stats"
 PowerShell、命令提示符和 macOS/Linux 终端使用同一条命令：
 
 ```bash
-npx --yes github:Ychris12138/dsh-usage-stats
+npx --yes github:idonweb/dsh-usage-stats
 ```
 
 安装器会把运行文件复制到 `~/.dsh/profiles/node_modules/@ychris12138/dsh-usage-stats`，并在 `profiles/web/cordis.patch.yml` 中以带引号的 scoped identity 幂等启用插件。重复运行即可更新，不会重复追加配置；旧版 `name: dsh-usage-stats` 和未加引号的 `name: @ychris12138/dsh-usage-stats` 会自动迁移。设置了 `DSH_HOME` 时使用该目录。
@@ -84,13 +84,13 @@ npx --yes github:Ychris12138/dsh-usage-stats
 
 ```bash
 # 预览，不修改文件
-npx --yes github:Ychris12138/dsh-usage-stats --dry-run
+npx --yes github:idonweb/dsh-usage-stats --dry-run
 
 # 检查现有安装
-npx --yes github:Ychris12138/dsh-usage-stats --check
+npx --yes github:idonweb/dsh-usage-stats --check
 
 # 安装但不修改 Cordis patch
-npx --yes github:Ychris12138/dsh-usage-stats --no-enable
+npx --yes github:idonweb/dsh-usage-stats --no-enable
 ```
 
 无法使用 `npx` 时可从源码运行 `node scripts/install.mjs`。
@@ -339,7 +339,7 @@ CSV 使用 UTF-8、RFC 4180 引号与 spreadsheet formula 防护；Unicode 标�
 
 ```text
 Install or update dsh-usage-stats from:
-https://github.com/Ychris12138/dsh-usage-stats
+https://github.com/idonweb/dsh-usage-stats
 
 Constraints:
 - Resolve DSH_HOME from the environment; otherwise use ~/.dsh.
@@ -349,9 +349,9 @@ Constraints:
 
 Procedure:
 1. Confirm node, npx, and dsh are available.
-2. Prefer the exact npm stable used by Desktop Market: `dsh plugin --profile web add "@ychris12138/dsh-usage-stats@0.3.3"` (or update the existing scoped package).
-3. Use `github:Ychris12138/dsh-usage-stats` only when I explicitly ask to test unreleased source/RC code.
-4. If dsh plugin is unavailable, use the compatible source installer only with my approval: `npx --yes github:Ychris12138/dsh-usage-stats`.
+2. Prefer the exact npm stable used by Desktop Market: `dsh plugin --profile web add "@ychris12138/dsh-usage-stats@0.3.4"` (or update the existing scoped package).
+3. Use `github:idonweb/dsh-usage-stats` only when I explicitly ask to test unreleased source/RC code.
+4. If dsh plugin is unavailable, use the compatible source installer only with my approval: `npx --yes github:idonweb/dsh-usage-stats`.
 5. Do not combine bundle installation with an existing manual dsh-usage-stats Cordis entry.
 6. For npx, require a verified package and exactly one Cordis entry, then run again with --check.
 7. Report the exact package identity/version, installation path, and resolved profile paths.
@@ -375,7 +375,7 @@ Optional monitor setup:
 只获准检查而不能修改时运行：
 
 ```bash
-npx --yes github:Ychris12138/dsh-usage-stats --check
+npx --yes github:idonweb/dsh-usage-stats --check
 ```
 
 安装器退出码：未知参数返回 `2`；文件、版本或配置验证失败返回非零；成功时输出已验证版本、安装目录和 patch 路径。Agent 无需自行解析或重写 YAML。
@@ -446,7 +446,7 @@ node scripts/check-balance.mjs
 
 ## 兼容性与致谢 / Compatibility & credits
 
-当前 npm stable 为 `0.3.3`；`v0.3.3` 的完整发布门禁见 [`docs/release-checklist.md`](docs/release-checklist.md)，变更摘要见 [`docs/release-notes-v0.3.3.md`](docs/release-notes-v0.3.3.md)。插件依赖 Harness 客户端模块加载器、Cordis 服务与 session persistence；Harness 预发布接口变化时可能需要同步适配。
+当前 npm stable 为 `0.3.4`；`v0.3.3` 的完整发布门禁见 [`docs/release-checklist.md`](docs/release-checklist.md)，变更摘要见 [`docs/release-notes-v0.3.3.md`](docs/release-notes-v0.3.3.md)。插件依赖 Harness 客户端模块加载器、Cordis 服务与 session persistence；Harness 预发布接口变化时可能需要同步适配。
 
 持久化与活跃会话的读取按**能力探测**分支，不按版本号判断，因此 `>= 0.1.0-rc.6` 的支持范围未变：`0.1.3-alpha.1`–`0.1.5-rc.2` 用 `list()` 快照 + `open(id, "read")` 读句柄，`0.1.0-rc.7`–`0.1.2-rc.1` 用 `listSnapshots()` + `readFrom()`；活跃会话同时支持 `seq`/`snapshotEvents()` 与旧版 `events` 数组。`session/disposed` 在该范围内均存在（缺少它时已结束会话改由后台全量扫描补读）。缓存格式仍为 `version: 5`，旧缓存直接复用并原地重折叠。
 

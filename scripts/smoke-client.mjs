@@ -20,10 +20,35 @@ const { renderToStaticMarkup } = require("react-dom/server");
 const TestRenderer = require("react-test-renderer");
 const { act } = TestRenderer;
 
-// Fake primitives: every named export is a no-op component (returns its props as children is not needed).
+// Stubbed primitives, but only for names this bundle is allowed to reach.
+//
+// DSH 0.1.7-rc.1 renamed the product icons so the glyph name no longer carries
+// its rendered size — the size became a prop (`IconDataOutline16` became
+// `IconDataOutlineRegular`). An open-ended Proxy answers every name with a no-op
+// component, so it cannot tell a renamed export from a live one and let exactly
+// that break ship green. The allowlist plus the export-surface check below turn
+// a rename into a failure instead.
+const VERIFIED_PRIMITIVES_VERSION = "0.1.7-rc.1";
+const ALLOWED_PRIMITIVES = [
+	"IconChevronLeftOutlineRegular",
+	"IconChevronRightOutlineRegular",
+	"IconCloseOutlineRegular",
+	"IconDataOutlineRegular",
+	"IconRefreshOutlineRegular",
+	"Tooltip"
+];
+const allowedPrimitives = new Set(ALLOWED_PRIMITIVES);
 const Stub = () => null;
 const PassThrough = ({ children }) => children;
-const primitives = new Proxy({}, { get: (_target, key) => key === "Tooltip" ? PassThrough : Stub });
+const primitives = new Proxy({}, {
+	get: (_target, key) => {
+		if (typeof key !== "string") return void 0;
+		if (!allowedPrimitives.has(key)) {
+			throw new Error(`client requested unverified primitive "${key}"; confirm it exists in @deepseek-ai/dsh-client-ui-primitives@${VERIFIED_PRIMITIVES_VERSION} and add it to ALLOWED_PRIMITIVES`);
+		}
+		return key === "Tooltip" ? PassThrough : Stub;
+	}
+});
 
 let captured = null;
 const storedValues = new Map();
@@ -40,6 +65,32 @@ globalThis.window = { __ModuleLoader__: { load: (entry) => { captured = entry; }
 globalThis.document = { querySelector: () => null, createElement: () => ({ dataset: {}, appendChild: () => {} }), head: { appendChild: () => {} } };
 
 const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "lib", "client.js"), "utf8");
+
+// Every primitive the bundle reaches must be declared, and every declared name
+// must exist in the installed package. The Proxy above answers unknown names
+// with a throw, but it cannot know what DSH actually exports — so the export
+// surface is read from the package itself rather than assumed.
+const usedPrimitives = [...new Set([...source.matchAll(/primitives\.([A-Za-z0-9_]+)/g)].map((match) => match[1]))];
+for (const name of usedPrimitives) {
+	if (!allowedPrimitives.has(name)) throw new Error(`lib/client.js uses undeclared primitive "${name}"; add it to ALLOWED_PRIMITIVES after confirming it in @deepseek-ai/dsh-client-ui-primitives@${VERIFIED_PRIMITIVES_VERSION}`);
+}
+const primitivesManifestPath = createRequire(import.meta.url).resolve("@deepseek-ai/dsh-client-ui-primitives/package.json");
+const primitivesManifest = JSON.parse(readFileSync(primitivesManifestPath, "utf8"));
+if (primitivesManifest.version !== VERIFIED_PRIMITIVES_VERSION) {
+	throw new Error(`ALLOWED_PRIMITIVES was verified against ui-primitives ${VERIFIED_PRIMITIVES_VERSION}, but ${primitivesManifest.version} is installed; re-verify every name and update both`);
+}
+const primitivesEntry = join(dirname(primitivesManifestPath), primitivesManifest.exports?.["."]?.default ?? primitivesManifest.main);
+const primitivesExportBlock = /export\s*\{([^}]*)\}/.exec(readFileSync(primitivesEntry, "utf8"));
+if (primitivesExportBlock === null) throw new Error("could not read the ui-primitives export surface");
+const exportedPrimitives = new Set(primitivesExportBlock[1].split(",").map((entry) => {
+	const trimmed = entry.trim();
+	const alias = /\bas\s+([A-Za-z0-9_$]+)$/.exec(trimmed);
+	return alias === null ? trimmed : alias[1];
+}).filter((name) => name !== ""));
+for (const name of ALLOWED_PRIMITIVES) {
+	if (!exportedPrimitives.has(name)) throw new Error(`@deepseek-ai/dsh-client-ui-primitives@${VERIFIED_PRIMITIVES_VERSION} does not export "${name}" — DSH renamed or removed it; update lib/client.js and ALLOWED_PRIMITIVES together`);
+}
+
 if (!source.includes("/api/usage-stats/account")) throw new Error("client must use the unified account endpoint");
 if (source.includes('fetchJson("/api/usage-stats/subscriptions")')) throw new Error("client must not bulk-fetch every subscription provider");
 if (/host\.style\.flexDirection\s*=\s*["']column["']/.test(source)) throw new Error("client must not change the shared footer host flex direction (#82)");
