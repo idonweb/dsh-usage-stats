@@ -20,35 +20,33 @@ const { renderToStaticMarkup } = require("react-dom/server");
 const TestRenderer = require("react-test-renderer");
 const { act } = TestRenderer;
 
-// Stubbed primitives, but only for names this bundle is allowed to reach.
-//
-// DSH 0.1.7-rc.1 renamed the product icons so the glyph name no longer carries
-// its rendered size — the size became a prop (`IconDataOutline16` became
-// `IconDataOutlineRegular`). An open-ended Proxy answers every name with a no-op
-// component, so it cannot tell a renamed export from a live one and let exactly
-// that break ship green. The allowlist plus the export-surface check below turn
-// a rename into a failure instead.
-const VERIFIED_PRIMITIVES_VERSION = "0.1.7-rc.1";
-const ALLOWED_PRIMITIVES = [
-	"IconChevronLeftOutlineRegular",
-	"IconChevronRightOutlineRegular",
-	"IconCloseOutlineRegular",
-	"IconDataOutlineRegular",
-	"IconRefreshOutlineRegular",
-	"Tooltip"
-];
-const allowedPrimitives = new Set(ALLOWED_PRIMITIVES);
+// Fake primitives: every named export is a no-op component (returns its props as children is not needed).
 const Stub = () => null;
 const PassThrough = ({ children }) => children;
-const primitives = new Proxy({}, {
-	get: (_target, key) => {
-		if (typeof key !== "string") return void 0;
-		if (!allowedPrimitives.has(key)) {
-			throw new Error(`client requested unverified primitive "${key}"; confirm it exists in @deepseek-ai/dsh-client-ui-primitives@${VERIFIED_PRIMITIVES_VERSION} and add it to ALLOWED_PRIMITIVES`);
-		}
-		return key === "Tooltip" ? PassThrough : Stub;
-	}
+/** Distinguishable icon stub, so a render can prove the harness glyph was used. */
+const IconStub = () => react.createElement("span", { "data-icon-stub": "" });
+// The real package exports a fixed surface, so an unknown name is `undefined`
+// rather than a stub. Mirroring that is what catches a primitive the host
+// renamed or dropped: 0.1.7 moved the icon size out of the export name
+// (`IconCloseOutline16` → `IconCloseOutlineRegular`) and removed several glyphs.
+const legacyIcons = {
+	IconChevronLeftOutline14: IconStub,
+	IconChevronRightOutline14: IconStub,
+	IconCloseOutline16: IconStub,
+	IconDataOutline16: IconStub,
+	IconRefreshOutline14: IconStub
+};
+const currentIcons = {
+	IconChevronLeftOutlineRegular: IconStub,
+	IconChevronRightOutlineRegular: IconStub,
+	IconCloseOutlineRegular: IconStub,
+	IconDataOutlineRegular: IconStub,
+	IconRefreshOutlineRegular: IconStub
+};
+const primitivesSurface = (icons) => new Proxy({ ...icons, Tooltip: PassThrough }, {
+	get: (target, key) => (typeof key === "string" && key in target ? target[key] : undefined)
 });
+const primitives = primitivesSurface(legacyIcons);
 
 let captured = null;
 const storedValues = new Map();
@@ -65,32 +63,6 @@ globalThis.window = { __ModuleLoader__: { load: (entry) => { captured = entry; }
 globalThis.document = { querySelector: () => null, createElement: () => ({ dataset: {}, appendChild: () => {} }), head: { appendChild: () => {} } };
 
 const source = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "lib", "client.js"), "utf8");
-
-// Every primitive the bundle reaches must be declared, and every declared name
-// must exist in the installed package. The Proxy above answers unknown names
-// with a throw, but it cannot know what DSH actually exports — so the export
-// surface is read from the package itself rather than assumed.
-const usedPrimitives = [...new Set([...source.matchAll(/primitives\.([A-Za-z0-9_]+)/g)].map((match) => match[1]))];
-for (const name of usedPrimitives) {
-	if (!allowedPrimitives.has(name)) throw new Error(`lib/client.js uses undeclared primitive "${name}"; add it to ALLOWED_PRIMITIVES after confirming it in @deepseek-ai/dsh-client-ui-primitives@${VERIFIED_PRIMITIVES_VERSION}`);
-}
-const primitivesManifestPath = createRequire(import.meta.url).resolve("@deepseek-ai/dsh-client-ui-primitives/package.json");
-const primitivesManifest = JSON.parse(readFileSync(primitivesManifestPath, "utf8"));
-if (primitivesManifest.version !== VERIFIED_PRIMITIVES_VERSION) {
-	throw new Error(`ALLOWED_PRIMITIVES was verified against ui-primitives ${VERIFIED_PRIMITIVES_VERSION}, but ${primitivesManifest.version} is installed; re-verify every name and update both`);
-}
-const primitivesEntry = join(dirname(primitivesManifestPath), primitivesManifest.exports?.["."]?.default ?? primitivesManifest.main);
-const primitivesExportBlock = /export\s*\{([^}]*)\}/.exec(readFileSync(primitivesEntry, "utf8"));
-if (primitivesExportBlock === null) throw new Error("could not read the ui-primitives export surface");
-const exportedPrimitives = new Set(primitivesExportBlock[1].split(",").map((entry) => {
-	const trimmed = entry.trim();
-	const alias = /\bas\s+([A-Za-z0-9_$]+)$/.exec(trimmed);
-	return alias === null ? trimmed : alias[1];
-}).filter((name) => name !== ""));
-for (const name of ALLOWED_PRIMITIVES) {
-	if (!exportedPrimitives.has(name)) throw new Error(`@deepseek-ai/dsh-client-ui-primitives@${VERIFIED_PRIMITIVES_VERSION} does not export "${name}" — DSH renamed or removed it; update lib/client.js and ALLOWED_PRIMITIVES together`);
-}
-
 if (!source.includes("/api/usage-stats/account")) throw new Error("client must use the unified account endpoint");
 if (source.includes('fetchJson("/api/usage-stats/subscriptions")')) throw new Error("client must not bulk-fetch every subscription provider");
 if (/host\.style\.flexDirection\s*=\s*["']column["']/.test(source)) throw new Error("client must not change the shared footer host flex direction (#82)");
@@ -130,6 +102,47 @@ if (!dayTokensRule.includes("flex:none") || !dayTokensRule.includes("font-varian
 if (/(?:^|;)width:84px(?:;|$)/.test(dayTokensRule)) throw new Error("Last 14 days token column must use min-width rather than a fixed width in narrow layouts");
 const dayDateRule = /\.usg_dayDate\{([^}]*)\}/.exec(source)?.[1] ?? "";
 if (!dayDateRule.includes("flex:0 1 104px") || !dayDateRule.includes("min-width:0") || !dayDateRule.includes("overflow:hidden")) throw new Error("the date column must shrink before the aligned token column can overflow a narrow panel");
+// The sidebar action sits directly above the shell's Settings key and keeps that
+// key's geometry: a 42px row with 10/8px side padding and the same `4px -2px`
+// row margin, so the two buttons line up on both axes (#108). The collapsed
+// action keeps the 36px rail circle.
+const badgeRule = /\.usg_badge\{([^}]*)\}/.exec(source)?.[1] ?? "";
+const layerRule = /\.usg_layer\{([^}]*)\}/.exec(source)?.[1] ?? "";
+const railBadgeRule = /\.usg_layer\.usg_rail \.usg_badge\{([^}]*)\}/.exec(source)?.[1] ?? "";
+if (!badgeRule.includes("height:42px") || !badgeRule.includes("padding:0 10px 0 8px")) throw new Error("the expanded sidebar action must match the Settings key geometry (42px, 10/8px padding)");
+if (!layerRule.includes("width:calc(100% + 4px)") || !layerRule.includes("margin:4px -2px")) throw new Error("the sidebar action row must mirror the Settings row box (width calc(100% + 4px) with margin 4px -2px), never a one-sided top margin");
+if (!badgeRule.includes("box-sizing:border-box")) throw new Error("the sidebar action must size its padding inside the row box, like the Settings key");
+if (!railBadgeRule.includes("height:36px")) throw new Error("the collapsed sidebar action must match the Settings rail key (36px)");
+// Keyboard focus must be visible on the action and on the panel's controls.
+const focusRule = new RegExp("\\.usg_badge:focus-visible[^{]*\\{([^}]*)\\}").exec(source)?.[1] ?? "";
+if (!focusRule.includes("2px solid var(--dsw-alias-brand-primary)")) throw new Error("the sidebar action needs the host brand focus outline");
+// Hover uses the same translucent token as the Settings key; the opaque
+// `-hover-solid` fill is the shell's surface variant, not a row hover.
+const badgeHoverRule = /\.usg_badge:hover\{([^}]*)\}/.exec(source)?.[1] ?? "";
+if (!badgeHoverRule.includes("background:var(--dsw-alias-interactive-bg-hover)")) throw new Error("the sidebar action hover must match the Settings key hover token");
+// Panel surface: the official elevated-menu recipe. The blur token is absent
+// before 0.1.7, where the declaration drops out and the opaque menu colour
+// remains — that fallback is why no version check is needed.
+const panelRule = /\.usg_panel\{([^}]*)\}/.exec(source)?.[1] ?? "";
+const headerRule = /\.usg_header\{([^}]*)\}/.exec(source)?.[1] ?? "";
+if (!panelRule.includes("background:var(--dsw-specific-menu,var(--dsw-alias-bg-overlay,var(--dsw-alias-bg-base)))")) throw new Error("the panel must use the official menu surface colour");
+if (!panelRule.includes("backdrop-filter:var(--dsw-menu-backdrop-filter)")) throw new Error("the panel must pair the translucent menu surface with the official backdrop blur");
+if (!panelRule.includes("box-shadow:var(--dsw-elevation-prominent,var(--dsw-shadow-lv2))")) throw new Error("the panel must take the official prominent elevation with the legacy shadow as fallback");
+if (panelRule.includes("border:1px solid")) throw new Error("the official menu surface draws its hairline through the elevation stroke, not a 1px border");
+if (headerRule.includes("background:")) throw new Error("the panel header must stay transparent so the glass surface is continuous");
+// A control on the translucent panel takes the shell's glass-menu pattern
+// (transparent fill + hairline ring + shared hover fill); only the native popup
+// list stays opaque, because it draws over the page.
+const selectRule = /\.usg_providerSelect\{([^}]*)\}/.exec(source)?.[1] ?? "";
+const selectHoverRule = /\.usg_providerSelect:hover\{([^}]*)\}/.exec(source)?.[1] ?? "";
+const selectOptionRule = /\.usg_providerSelect option\{([^}]*)\}/.exec(source)?.[1] ?? "";
+if (!selectRule.includes("background:transparent")) throw new Error("a control on the translucent panel must not paint an opaque fill");
+if (!selectRule.includes("border:0.5px solid var(--dsw-alias-border-l3")) throw new Error("the provider select must take the shell hairline ring");
+if (!selectHoverRule.includes("background:var(--dsw-alias-interactive-bg-hover)")) throw new Error("the provider select hover must use the shared interactive fill");
+if (!selectOptionRule.includes("background:var(--dsw-alias-bg-layer-3")) throw new Error("the native option list must stay opaque over the page");
+for (const selector of [".usg_iconButton:focus-visible", ".usg_navButton:focus-visible", ".usg_cell:focus-visible", ".usg_day:focus-visible"]) {
+	if (!source.includes(selector)) throw new Error(`panel control ${selector} must join the focus outline rule`);
+}
 new Function(source)(); // executes the window.__ModuleLoader__.load call
 
 if (captured === null) throw new Error("loader did not capture the bundle");
@@ -242,6 +255,28 @@ if (!markup.includes("用量/余额") && !markup.includes("panel.badge")) throw 
 const railMarkup = renderToStaticMarkup(react.createElement(UsageStatsPanel, { wide: false, t: (key) => key }));
 if (!railMarkup.includes("usg_rail") || !railMarkup.includes("data-usage-stats-badge")) throw new Error("collapsed rail must retain the sidebar Usage Stats action");
 console.log("sidebar render ok, wide/rail markup:", markup.length, railMarkup.length);
+
+// The same panel against the other supported primitive surfaces: the 0.1.7 icon
+// spelling must resolve, and a host that exports no icon at all must still render
+// through the inline fallback instead of throwing the sidebar action away.
+const renderBadgeWith = (surface) => {
+	const surfaceExports = captured.factory((spec) => {
+		if (spec === "react") return react;
+		if (spec === "react/jsx-runtime") return jsxRuntime;
+		if (spec === "react-dom") return { createPortal: (node) => node };
+		if (spec === "@deepseek-ai/dsh-client-ui-primitives") return surface;
+		throw new Error(`unexpected require: ${spec}`);
+	});
+	return renderToStaticMarkup(react.createElement(surfaceExports.UsageStatsPanel, { wide: false, t: (key) => key }));
+};
+if (!markup.includes("data-icon-stub")) throw new Error("the legacy icon exports must be used when the host provides them");
+const currentMarkup = renderBadgeWith(primitivesSurface(currentIcons));
+if (!currentMarkup.includes("data-usage-stats-badge")) throw new Error("the panel must render against the 0.1.7 icon set");
+if (!currentMarkup.includes("data-icon-stub")) throw new Error("the 0.1.7 icon exports must be used when the host provides them");
+const bareMarkup = renderBadgeWith(primitivesSurface({}));
+if (!bareMarkup.includes("data-usage-stats-badge")) throw new Error("the panel must render when the host exports no icon");
+if (bareMarkup.includes("data-icon-stub") || !bareMarkup.includes("<svg")) throw new Error("a missing icon must fall back to the inline glyph");
+console.log("icon surface compatibility ok (legacy, 0.1.7, none)");
 
 // Apply against a stub client context.
 const registrations = [];
