@@ -36,7 +36,7 @@ Provider balances, subscription quotas, and token-usage analytics for the DeepSe
 
 需要 DeepSeek Harness `web` profile（`@deepseek-ai/dsh >= 0.1.0-rc.6`）。
 
-本仓库是 fork，修复只随 Git 标签发布：npm 上没有 `0.3.4`，按 npm 精确版本安装会解析失败。因此从本仓库安装：
+本仓库是 fork。当前版本 `0.3.4-rc.1` 逐字复用上游已合入 main 的 v0.3.4 发布代码（预发布：上游尚未打 tag、尚未发 npm，此刻按 npm 精确版本装 `0.3.4` 会解析失败），因此从本仓库安装：
 
 ```bash
 dsh plugin --profile web add "github:idonweb/dsh-usage-stats"
@@ -44,7 +44,7 @@ dsh plugin --profile web add "github:idonweb/dsh-usage-stats"
 
 GitHub `main` 可能领先发布标签，需要可复现的版本时请固定标签：`dsh plugin --profile web add "github:idonweb/dsh-usage-stats#v0.3.4-rc.1"`。
 
-npm 上的 `@ychris12138/dsh-usage-stats` 最新稳定版是上游的 `0.3.3`，**不含**本仓库针对 DSH `0.1.7` 图标改名的修复，仅在旧版 DSH 上使用：`dsh plugin --profile web add "@ychris12138/dsh-usage-stats@0.3.3"`。
+npm 上的 `@ychris12138/dsh-usage-stats` 最新稳定版仍是上游 `0.3.3`，**不含** v0.3.4 的 DSH `0.1.7` 兼容修复（图标、聚合性能、provider 列表、宿主安全等，见下方兼容性小节），仅建议在旧版 DSH 上使用：`dsh plugin --profile web add "@ychris12138/dsh-usage-stats@0.3.3"`。
 
 然后重启已经运行的 `dsh web`，并在浏览器中硬刷新。侧边栏底部会出现“用量/余额”（Usage/Balance）入口。
 
@@ -101,7 +101,7 @@ npx --yes github:idonweb/dsh-usage-stats --no-enable
 
 ## 支持的账户类型 / Providers
 
-插件自动发现官方 DeepSeek 路由和 `llm-pi-ai` 中的 provider profile。只有存在公开账户接口或显式 monitor 的供应商才会查询远端账户；Token 用量统计不需要额外凭据。
+插件自动发现官方 DeepSeek 路由、`llm-pi-ai` 中的 provider profile，以及宿主 provider 注册表登记的全部路由（v0.3.4 起）。只有存在公开账户接口或显式 monitor 的供应商才会查询远端账户；Token 用量统计不需要额外凭据。
 
 | Provider / adapter | 模式 | 默认凭据 | 上游接口 |
 | --- | --- | --- | --- |
@@ -351,8 +351,8 @@ Constraints:
 
 Procedure:
 1. Confirm node, npx, and dsh are available.
-2. Install from the fork's git tag: `dsh plugin --profile web add "github:idonweb/dsh-usage-stats"`, or pin `github:idonweb/dsh-usage-stats#v0.3.4-rc.1` for a reproducible version. The DSH 0.1.7 icon fix ships only in this fork, never on npm.
-3. Use the npm package `dsh plugin --profile web add "@ychris12138/dsh-usage-stats@0.3.3"` only on older DSH: it is upstream 0.3.3 and does not contain the fix.
+2. Install from the fork's git tag: `dsh plugin --profile web add "github:idonweb/dsh-usage-stats"`, or pin `github:idonweb/dsh-usage-stats#v0.3.4-rc.1` for a reproducible version. This fork ships the upstream v0.3.4 code (DSH 0.1.7 fixes) as a pre-release; npm still only has 0.3.3.
+3. Use the npm package `dsh plugin --profile web add "@ychris12138/dsh-usage-stats@0.3.3"` only on older DSH: it is upstream 0.3.3 and does not contain the DSH 0.1.7 fixes.
 4. If dsh plugin is unavailable, use the compatible source installer only with my approval: `npx --yes github:idonweb/dsh-usage-stats`.
 5. Do not combine bundle installation with an existing manual dsh-usage-stats Cordis entry.
 6. For npx, require a verified package and exactly one Cordis entry, then run again with --check.
@@ -451,7 +451,7 @@ node scripts/check-balance.mjs
 
 ## 兼容性与致谢 / Compatibility & credits
 
-当前 fork 发布标签为 `v0.3.4-rc.1`（npm 上仅到上游 `0.3.3`）；`v0.3.3` 的完整发布门禁见 [`docs/release-checklist.md`](docs/release-checklist.md)，变更摘要见 [`docs/release-notes-v0.3.3.md`](docs/release-notes-v0.3.3.md)。插件依赖 Harness 客户端模块加载器、Cordis 服务与 session persistence；Harness 预发布接口变化时可能需要同步适配。
+当前 fork 发布标签为 `v0.3.4-rc.1`，代码与上游已合入 main 的 v0.3.4 发布提交一致（npm 上仅到上游 `0.3.3`）；`v0.3.4` 的完整发布门禁见 [`docs/release-checklist.md`](docs/release-checklist.md)，变更摘要见 [`docs/release-notes-v0.3.4.md`](docs/release-notes-v0.3.4.md)。插件依赖 Harness 客户端模块加载器、Cordis 服务与 session persistence；Harness 预发布接口变化时可能需要同步适配。
 
 持久化与活跃会话的读取按**能力探测**分支，不按版本号判断，因此 `>= 0.1.0-rc.6` 的支持范围未变：`0.1.3-alpha.1`–`0.1.5-rc.2` 用 `list()` 快照 + `open(id, "read")` 读句柄，`0.1.0-rc.7`–`0.1.2-rc.1` 用 `listSnapshots()` + `readFrom()`；活跃会话同时支持 `seq`/`snapshotEvents()` 与旧版 `events` 数组。`session/disposed` 在该范围内均存在（缺少它时已结束会话改由后台全量扫描补读）。缓存格式仍为 `version: 5`，旧缓存直接复用并原地重折叠。
 
