@@ -1,7 +1,7 @@
 {
   "name": "@ychris12138/dsh-usage-stats",
   "description": "Token usage, provider accounts, session cost estimates, budgets, and exports for the dsh web GUI",
-  "version": "0.3.4",
+  "version": "0.3.4-rc.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/idonweb/dsh-usage-stats.git"
