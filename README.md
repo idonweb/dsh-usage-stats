@@ -2,7 +2,7 @@
 
 <!-- stable-version: 0.3.4-rc.1 -->
 
-[![GitHub Release](https://img.shields.io/github/v/release/idonweb/dsh-usage-stats?display_name=tag&sort=semver&color=1f6feb)](https://github.com/idonweb/dsh-usage-stats/releases/latest)
+[![GitHub Release](https://img.shields.io/github/v/release/idonweb/dsh-usage-stats?display_name=tag&include_prereleases&sort=date&color=1f6feb)](https://github.com/idonweb/dsh-usage-stats/releases)
 [![CI](https://github.com/idonweb/dsh-usage-stats/actions/workflows/ci.yml/badge.svg)](https://github.com/idonweb/dsh-usage-stats/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-2da44e)](LICENSE)
 
